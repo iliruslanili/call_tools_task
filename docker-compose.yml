@@ -1,0 +1,13 @@
+services:
+
+  whisper-asr-api:
+    image: whisper-asr:1.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    ports:
+      - "8000:8000"
+    volumes:
+      - .cache/pip-docker/:/root/.cache/pip
+    restart: always

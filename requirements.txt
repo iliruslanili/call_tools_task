@@ -1,3 +1,9 @@
-pyaudio
-fastapi~=0.112.2
+python-multipart
+fastapi
 uvicorn
+librosa
+-f https://download.pytorch.org/whl/cu124
+torch==2.4.1
+torchaudio
+transformers
+

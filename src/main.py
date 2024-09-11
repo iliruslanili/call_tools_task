@@ -1,15 +1,26 @@
 import io
-from io import BytesIO
-
-import soundfile
-import uvicorn
-from fastapi import FastAPI, UploadFile, Response, File, Form
-from fastapi.responses import FileResponse
+import torch
 import librosa
-from fastapi.responses import ORJSONResponse
+import uvicorn
+import soundfile
+from io import BytesIO
+from transformers import pipeline
+from fastapi import FastAPI, UploadFile, Response, File, Form
 
 app = FastAPI()
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
+
+print(f'device: {device}')
+#
+pipe = pipeline(
+  "automatic-speech-recognition",
+  model="/tmp/model",
+  # model="openai/whisper-small",
+  # model_path="/tmp/model",
+  # chunk_length_s=20,
+  device=device,
+)
 
 @app.post('/modify_audio_file')
 async def modify_audio_file(
@@ -32,13 +43,18 @@ async def modify_audio_file(
 
     headers = {'Content-Disposition': f'attachment; filename="{file.filename}"'}
     return Response(content=result.getvalue(), media_type='application/octet-stream', headers=headers)
-    # return FileResponse(file_path, media_type='audio/wav')
-    # return ORJSONResponse(content=data)
-    # return file
 
-@app.post('/stt')
-async def stt(file : UploadFile = File(description='Звуковая дорожка для изменения')):
-    pass
+
+@app.post('/speech_to_text')
+async def stt(file: UploadFile = File(description='Звуковая дорожка для распознавания')):
+    x, sr = librosa.load(file.file)
+    prediction = pipe(
+        x.copy(),
+        batch_size=4,
+        return_timestamps=True
+    )
+    # print(prediction
+    return prediction
 
 
 if __name__ == '__main__':
