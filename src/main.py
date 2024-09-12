@@ -6,21 +6,31 @@ import soundfile
 from io import BytesIO
 from transformers import pipeline
 from fastapi import FastAPI, UploadFile, Response, File, Form
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+pipe = None
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
-print(f'device: {device}')
-#
-pipe = pipeline(
-  "automatic-speech-recognition",
-  model="/tmp/model",
-  # model="openai/whisper-small",
-  # model_path="/tmp/model",
-  # chunk_length_s=20,
-  device=device,
-)
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    global pipe
+    print(f'device: {device}')
+    
+    pipe = pipeline(
+        "automatic-speech-recognition",
+        model="/tmp/model",
+        # model="openai/whisper-small",
+        # model_path="/tmp/model",
+        # chunk_length_s=20,
+        device=device,
+    )
+    yield
+    del pipe
+
+
+app = FastAPI(lifespan=lifespan)
+
 
 @app.post('/modify_audio_file')
 async def modify_audio_file(
